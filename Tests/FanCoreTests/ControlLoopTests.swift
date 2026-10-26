@@ -99,4 +99,29 @@ struct ControlLoopTests {
         #expect(loop.status.error == Controller.sensorErrorMessage)
         #expect(smc.uint8("F0Md") == 0)
     }
+
+    @Test func statusReportsEffectivePresetForUnknownID() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent("config.json")
+        try JSONEncoder().encode(Config(activePresetID: "missing")).write(to: url)
+        let loop = try ControlLoop(smc: smc, store: ConfigStore(url: url), log: { _ in })
+        loop.start()
+        smc.setFloat("Tp01", 70)
+        loop.tick()
+        #expect(loop.status.activePresetID == Preset.balancedID)
+    }
+
+    @Test func markWakeRewritesUnchangedCommands() throws {
+        let loop = try makeLoop()
+        loop.start()
+        smc.setFloat("Tp01", 70)
+        loop.tick()
+        let before = smc.writes.count
+        loop.tick()
+        #expect(smc.writes.count == before)
+        loop.markWake()
+        loop.tick()
+        #expect(smc.writes.count > before)
+    }
 }

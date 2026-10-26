@@ -75,7 +75,8 @@ public final class ControlLoop {
         status.temperature = output.smoothedTemperature
         status.safetyActive = output.safetyActive
         status.error = output.error
-        status.activePresetID = store.config.activePresetID
+        // Báo preset thực đang dùng (có fallback khi id không tồn tại), không báo id thô trong config.
+        status.activePresetID = store.config.activePreset.id
         status.presets = store.config.allPresets
         status.fans = controller.fans.map { fan in
             FanStatus(index: fan.index,

@@ -12,19 +12,19 @@ public final class ConfigStore {
             config = decoded
         } else {
             config = .default
-            try? save()
+            try? save(config)
         }
     }
 
-    /// Chỉ giữ thay đổi và lưu khi `mutate` không ném lỗi.
+    /// Chỉ giữ thay đổi khi `mutate` và việc lưu đều thành công; lỗi lưu thì `config` không đổi.
     public func update(_ mutate: (inout Config) throws -> Void) throws {
         var copy = config
         try mutate(&copy)
+        try save(copy)
         config = copy
-        try save()
     }
 
-    private func save() throws {
+    private func save(_ config: Config) throws {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

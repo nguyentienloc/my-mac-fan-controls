@@ -34,4 +34,13 @@ struct ConfigStoreTests {
         #expect(store.config == .default)
         #expect(ConfigStore(url: url).config == .default)
     }
+
+    @Test func failedSaveLeavesConfigUnchanged() throws {
+        let store = ConfigStore(url: url)
+        // Thư mục cha bị thay bằng file thường → không thể tạo/ghi config.json.
+        try FileManager.default.removeItem(at: url.deletingLastPathComponent())
+        try Data().write(to: url.deletingLastPathComponent())
+        #expect(throws: (any Error).self) { try store.update { try $0.setActive(Preset.maxID) } }
+        #expect(store.config == .default)
+    }
 }
