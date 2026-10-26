@@ -19,6 +19,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate, FanDaemonProtocol {
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
         connection.exportedInterface = NSXPCInterface(with: FanDaemonProtocol.self)
         connection.exportedObject = self
+        connection.setCodeSigningRequirement(XPCConstants.clientRequirement)
         connection.resume()
         return true
     }
@@ -49,7 +50,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate, FanDaemonProtocol {
         queue.async {
             do {
                 try self.store.update(mutate)
-                self.loop.tick() // áp dụng ngay, không đợi chu kỳ sau
+                self.loop.configChanged() // quạt đổi chế độ ở chu kỳ 2 giây kế tiếp
                 reply(nil)
             } catch let error as Config.EditError {
                 reply(error.message)

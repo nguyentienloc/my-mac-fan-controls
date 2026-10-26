@@ -26,7 +26,7 @@ public final class ControlLoop {
         self.status = Status(
             temperature: nil,
             fans: fans.map { FanStatus(index: $0.index, rpm: 0, minRPM: $0.minRPM, maxRPM: $0.maxRPM, manual: false) },
-            activePresetID: store.config.activePresetID,
+            activePresetID: store.config.activePreset.id,
             presets: store.config.allPresets,
             safetyActive: false,
             error: nil)
@@ -45,6 +45,13 @@ public final class ControlLoop {
 
     public func markWake() {
         controller.markNeedsRewrite()
+    }
+
+    /// Báo cấu hình vừa đổi: chỉ cập nhật preset đang dùng và danh sách preset trong status.
+    /// Không gọi controller, không ghi SMC; quạt chuyển sang chế độ mới ở chu kỳ 2 giây kế tiếp.
+    public func configChanged() {
+        status.activePresetID = store.config.activePreset.id
+        status.presets = store.config.allPresets
     }
 
     public func tick() {

@@ -124,4 +124,16 @@ struct ControlLoopTests {
         loop.tick()
         #expect(smc.writes.count > before)
     }
+
+    @Test func configChangedUpdatesStatusWithoutWriting() throws {
+        let loop = try makeLoop()
+        loop.start()
+        smc.setFloat("Tp01", 70)
+        loop.tick()
+        let writesBefore = smc.writes.count
+        try store.update { try $0.setActive(Preset.maxID) }
+        loop.configChanged()
+        #expect(loop.status.activePresetID == Preset.maxID)
+        #expect(smc.writes.count == writesBefore)
+    }
 }

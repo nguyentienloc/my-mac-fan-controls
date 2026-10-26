@@ -4,6 +4,7 @@ import IOKit.pwr_mgt
 
 /// Báo khi máy thức dậy. Các hằng kIOMessage* là macro C nên Swift không import được:
 /// iokit_common_msg(x) = 0xE0000000 | x.
+/// Phải sống suốt tiến trình vì refcon truyền không giữ (unretained).
 final class PowerMonitor {
     private static let canSystemSleep: UInt32 = 0xE000_0270
     private static let systemWillSleep: UInt32 = 0xE000_0280
@@ -23,6 +24,8 @@ final class PowerMonitor {
         }, &notifier)
         if let notifyPort { IONotificationPortSetDispatchQueue(notifyPort, queue) }
     }
+
+    var isRegistered: Bool { rootPort != 0 }
 
     private func handle(_ messageType: UInt32, _ argument: UnsafeMutableRawPointer?) {
         switch messageType {

@@ -32,7 +32,7 @@ if arguments.contains("--probe") {
     }
     let sensors = try SensorService(smc: smc)
     let maxTemp = try sensors.readMaxTemperature()
-    print("\(sensors.keys.count) cảm biến, nhiệt độ cao nhất \(maxTemp)°C")
+    print("\(sensors.keys.count) cảm biến, nhiệt độ cao nhất \(String(format: "%.1f", maxTemp))°C")
     exit(0)
 }
 
@@ -72,13 +72,21 @@ let powerMonitor = PowerMonitor(queue: queue) {
     logLine("Máy thức dậy, ghi lại lệnh quạt")
     loop.markWake()
 }
+if !powerMonitor.isRegistered {
+    logLine("Không đăng ký được sự kiện nguồn; sẽ không ghi lại lệnh quạt sau khi thức dậy")
+}
 
-// Dry-run chạy ngoài launchd nên không đăng ký được mach service
-let service = DaemonService(queue: queue, loop: loop, store: store, log: logLine)
-let listener = NSXPCListener(machServiceName: XPCConstants.machServiceName)
+// Dry-run chạy ngoài launchd nên không mở XPC; chỉ tạo service và listener khi chạy thật.
+// Giữ sống bằng biến toàn cục (listener.delegate là weak).
+var service: DaemonService?
+var listener: NSXPCListener?
 if !dryRun {
-    listener.delegate = service
-    listener.resume()
+    let newService = DaemonService(queue: queue, loop: loop, store: store, log: logLine)
+    let newListener = NSXPCListener(machServiceName: XPCConstants.machServiceName)
+    newListener.delegate = newService
+    newListener.resume()
+    service = newService
+    listener = newListener
 }
 
 dispatchMain()
