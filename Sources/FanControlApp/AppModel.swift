@@ -7,6 +7,8 @@ import Shared
 @Observable
 final class AppModel {
     private(set) var status: Status?
+    /// Danh sách preset gần nhất đã biết (khởi đầu là các preset dựng sẵn).
+    private(set) var knownPresets: [Preset] = Preset.builtIns
     private(set) var helperInstalled = HelperInstaller.isInstalled
     private(set) var connectionError: String?
     private(set) var launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -25,7 +27,8 @@ final class AppModel {
         }
     }
 
-    var presets: [Preset] { status?.presets ?? Preset.builtIns }
+    // Giữ danh sách đã biết gần nhất để mất kết nối thoáng qua không làm preset tùy chỉnh biến mất
+    var presets: [Preset] { status?.presets ?? knownPresets }
 
     /// Chữ đỏ trên thanh menu: quá nhiệt, daemon báo lỗi hoặc mất kết nối.
     var isAlert: Bool {
@@ -40,7 +43,9 @@ final class AppModel {
             return
         }
         do {
-            status = try await client.status()
+            let newStatus = try await client.status()
+            status = newStatus
+            knownPresets = newStatus.presets
             connectionError = nil
         } catch {
             status = nil
@@ -57,7 +62,8 @@ final class AppModel {
         await perform { try await self.client.savePreset(preset) }
     }
 
-    func deletePreset(_ presetID: String) async {
+    @discardableResult
+    func deletePreset(_ presetID: String) async -> Bool {
         await perform { try await self.client.deletePreset(presetID) }
     }
 

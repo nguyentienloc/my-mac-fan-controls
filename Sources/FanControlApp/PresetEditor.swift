@@ -105,6 +105,7 @@ struct CurveChart: View {
         .chartYScale(domain: FanCurve.validPercentRange)
         .chartXAxisLabel("Nhiệt độ (°C)")
         .chartYAxisLabel("Tốc độ (%)")
+        .onChange(of: points.count) { dragIndex = nil }
         .chartOverlay { proxy in
             GeometryReader { geometry in
                 Rectangle()
@@ -128,10 +129,12 @@ struct CurveChart: View {
                 guard let index = dragIndex,
                       let temp: Double = proxy.value(atX: value.location.x - origin.x),
                       let percent: Double = proxy.value(atY: value.location.y - origin.y) else { return }
+                // Chỉ số cũ (số điểm đã đổi giữa lúc kéo): bỏ thao tác kéo
+                guard index < points.count else { dragIndex = nil; return }
                 let lower = index > 0 ? points[index - 1].temp + 1 : FanCurve.validTempRange.lowerBound
                 let upper = index < points.count - 1 ? points[index + 1].temp - 1 : FanCurve.validTempRange.upperBound
                 points[index].temp = min(max(temp.rounded(), lower), upper)
-                points[index].percent = min(max(percent.rounded(), 0), 100)
+                points[index].percent = min(max(percent.rounded(), FanCurve.validPercentRange.lowerBound), FanCurve.validPercentRange.upperBound)
             }
             .onEnded { _ in dragIndex = nil }
     }

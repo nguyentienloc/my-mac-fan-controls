@@ -51,6 +51,8 @@ struct CurvesTab: View {
             if let id = draft?.id, !model.presets.contains(where: { $0.id == id }) {
                 draft = selectedPreset
             }
+            // Khôi phục trình sửa khi danh sách preset quay lại sau lỗi thoáng qua
+            if draft == nil { draft = selectedPreset }
         }
     }
 
@@ -65,8 +67,7 @@ struct CurvesTab: View {
     private func delete() {
         guard let id = draft?.id else { return }
         Task {
-            await model.deletePreset(id)
-            selectedID = Preset.balancedID
+            if await model.deletePreset(id) { selectedID = Preset.balancedID }
         }
     }
 
