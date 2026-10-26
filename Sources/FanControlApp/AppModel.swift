@@ -18,7 +18,8 @@ final class AppModel {
     init() {
         pollTask = Task { [weak self] in
             while !Task.isCancelled {
-                await self?.refresh()
+                guard let self else { return }
+                await self.refresh()
                 try? await Task.sleep(for: .seconds(2))
             }
         }
@@ -89,6 +90,10 @@ final class AppModel {
             actionError = nil
             await refresh()
             return true
+        } catch DaemonError.cancelled {
+            // Người dùng huỷ: im lặng, không báo lỗi
+            await refresh()
+            return false
         } catch {
             actionError = error.localizedDescription
             await refresh()

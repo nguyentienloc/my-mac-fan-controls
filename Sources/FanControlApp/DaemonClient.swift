@@ -4,12 +4,39 @@ import Shared
 enum DaemonError: LocalizedError {
     case rejected(String)
     case badResponse
+    case timeout
+    /// Người dùng huỷ hộp thoại mật khẩu admin — không phải lỗi.
+    case cancelled
 
     var errorDescription: String? {
         switch self {
+        case .timeout: return "Helper không phản hồi"
+        case .cancelled: return "Đã huỷ"
         case .rejected(let message): return message
         case .badResponse: return "Phản hồi không hợp lệ từ helper"
         }
+    }
+}
+
+/// Đảm bảo continuation chỉ được resume đúng một lần (reply, error handler và timeout có thể tranh nhau).
+private final class OnceBox<T>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var done = false
+    private let continuation: CheckedContinuation<T, Error>
+
+    init(_ continuation: CheckedContinuation<T, Error>) {
+        self.continuation = continuation
+    }
+
+    /// Trả true nếu lần gọi này là lần đầu (và đã resume).
+    @discardableResult
+    func resume(with result: Result<T, Error>) -> Bool {
+        lock.lock()
+        let first = !done
+        done = true
+        lock.unlock()
+        if first { continuation.resume(with: result) }
+        return first
     }
 }
 
@@ -42,14 +69,23 @@ final class DaemonClient {
         if let message { throw DaemonError.rejected(message) }
     }
 
-    /// XPC đảm bảo chỉ gọi một trong hai: reply hoặc error handler.
+    /// Reply, error handler và timeout (5 giây) đều đi qua OnceBox nên continuation chỉ resume một lần.
     private func call<T>(_ body: (FanDaemonProtocol, @escaping (Result<T, Error>) -> Void) -> Void) async throws -> T {
         try await withCheckedThrowingContinuation { continuation in
-            guard let proxy = makeProxy(onError: { continuation.resume(throwing: $0) }) else {
-                continuation.resume(throwing: DaemonError.badResponse)
+            let once = OnceBox<T>(continuation)
+            guard let proxy = makeProxy(onError: { once.resume(with: .failure($0)) }) else {
+                once.resume(with: .failure(DaemonError.badResponse))
                 return
             }
-            body(proxy) { continuation.resume(with: $0) }
+            DispatchQueue.global().asyncAfter(deadline: .now() + 5) { [weak self] in
+                // Chỉ huỷ kết nối khi timeout thật sự thắng, để lần gọi sau tạo kết nối mới
+                guard once.resume(with: .failure(DaemonError.timeout)) else { return }
+                Task { @MainActor in
+                    self?.connection?.invalidate()
+                    self?.connection = nil
+                }
+            }
+            body(proxy) { once.resume(with: $0) }
         }
     }
 

@@ -4,7 +4,9 @@ import Shared
 /// Cài/gỡ daemon bằng AppleScript `with administrator privileges` (macOS hỏi mật khẩu).
 enum HelperInstaller {
     static var isInstalled: Bool {
-        FileManager.default.fileExists(atPath: HelperScripts.plistPath)
+        let fileManager = FileManager.default
+        return fileManager.fileExists(atPath: HelperScripts.plistPath)
+            && fileManager.fileExists(atPath: HelperScripts.helperPath)
     }
 
     static func install() throws {
@@ -20,11 +22,16 @@ enum HelperInstaller {
     }
 
     private static func runAsAdmin(_ script: String) throws {
+        guard let appleScript = NSAppleScript(source: HelperScripts.appleScript(running: script)) else {
+            throw DaemonError.rejected("Không tạo được lệnh cài đặt")
+        }
         var error: NSDictionary?
-        NSAppleScript(source: HelperScripts.appleScript(running: script))?.executeAndReturnError(&error)
+        appleScript.executeAndReturnError(&error)
         if let error {
+            // -128: người dùng bấm Hủy ở hộp thoại mật khẩu
+            if error[NSAppleScript.errorNumber] as? Int == -128 { throw DaemonError.cancelled }
             let message = error[NSAppleScript.errorMessage] as? String ?? "Lỗi không xác định"
-            throw DaemonError.rejected(message)
+            throw DaemonError.rejected("Không chạy được lệnh cài đặt: \(message)")
         }
     }
 }

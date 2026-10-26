@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GeneralTab: View {
     @Environment(AppModel.self) private var model
+    @State private var confirmUninstall = false
 
     var body: some View {
         Form {
@@ -15,7 +16,15 @@ struct GeneralTab: View {
                     }
                     if model.helperInstalled {
                         Button("Gỡ helper", role: .destructive) {
-                            Task { await model.uninstallHelper() }
+                            confirmUninstall = true
+                        }
+                        .confirmationDialog("Gỡ helper điều khiển quạt?", isPresented: $confirmUninstall) {
+                            Button("Gỡ helper", role: .destructive) {
+                                Task { await model.uninstallHelper() }
+                            }
+                            Button("Hủy", role: .cancel) {}
+                        } message: {
+                            Text("Quạt sẽ trở về chế độ tự động của Apple.")
                         }
                     }
                 }

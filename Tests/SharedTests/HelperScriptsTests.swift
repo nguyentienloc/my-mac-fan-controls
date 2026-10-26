@@ -24,4 +24,16 @@ struct HelperScriptsTests {
         #expect(HelperScripts.appleScript(running: #"echo "a\b""#) ==
             #"do shell script "echo \"a\\b\"" with administrator privileges"#)
     }
+
+    /// Đường dẫn chứa ' " \ $ ` đi qua cả hai lớp escape (sh rồi AppleScript).
+    @Test func composedInstallScriptEscapesHostilePath() {
+        let script = HelperScripts.appleScript(
+            running: HelperScripts.install(bundledHelper: "/tmp/a'b\"c\\d$e`f/fanctld", bundledPlist: "/tmp/p.plist"))
+        // Gốc:      /tmp/a'b"c\d$e`f/fanctld
+        // Lớp sh:   '/tmp/a'\''b"c\d$e`f/fanctld'
+        // AppleScript (\ → \\, rồi " → \"): '/tmp/a'\\''b\"c\\d$e`f/fanctld'
+        #expect(script.contains(#"cp '/tmp/a'\\''b\"c\\d$e`f/fanctld' '/Library/PrivilegedHelperTools/fanctld'"#))
+        #expect(script.hasPrefix("do shell script \""))
+        #expect(script.hasSuffix("\" with administrator privileges"))
+    }
 }
