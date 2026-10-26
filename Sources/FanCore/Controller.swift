@@ -41,7 +41,11 @@ public final class Controller {
     private var safetyActive = false
     private var curveEngaged = false
     private var readFailures = 0
-    private var writeFailures = 0
+    /// Đếm lỗi ghi liên tiếp theo từng quạt.
+    private var writeFailures: [Int: Int] = [:]
+    /// Đã bỏ cuộc ghi: giữ nguyên (latch) cho tới khi người dùng đổi chế độ.
+    private var writeGaveUp = false
+    private var gaveUpPresetID: String?
     private var lastWritten: [Int: FanCommand] = [:]
     private var forceRewrite = false
 
@@ -50,12 +54,14 @@ public final class Controller {
         self.settings = settings
     }
 
-    /// `reading == nil` nghĩa là đọc cảm biến lỗi.
+    /// `reading == nil` hoặc không hữu hạn (NaN, vô cực) nghĩa là đọc cảm biến lỗi.
     public func step(reading: Double?, preset: Preset) -> ControlOutput {
+        updateWriteGiveUp(preset: preset)
+
         var desired: [Int: FanCommand]
         var error: String?
 
-        if let raw = reading {
+        if let raw = reading, raw.isFinite {
             readFailures = 0
             let temp = smoothed.map { settings.emaAlpha * raw + (1 - settings.emaAlpha) * $0 } ?? raw
             smoothed = temp
@@ -69,15 +75,19 @@ public final class Controller {
         } else {
             readFailures += 1
             if readFailures < settings.maxConsecutiveFailures {
-                return ControlOutput(commands: [:], smoothedTemperature: smoothed, safetyActive: safetyActive, error: nil)
+                return ControlOutput(commands: [:], smoothedTemperature: smoothed,
+                                     safetyActive: safetyActive && !writeGaveUp,
+                                     error: writeGaveUp ? Self.writeErrorMessage : nil)
             }
             error = Self.sensorErrorMessage
             safetyActive = false
             curveEngaged = false
+            // Bỏ dữ liệu cũ để lần đọc tốt tiếp theo bắt đầu lại, không trộn với giá trị đã cũ
+            smoothed = nil
             desired = allAuto()
         }
 
-        if writeFailures >= settings.maxConsecutiveFailures {
+        if writeGaveUp {
             error = Self.writeErrorMessage
             curveEngaged = false
             desired = allAuto()
@@ -85,23 +95,40 @@ public final class Controller {
 
         let commands = desired.filter { needsWrite($0.value, previous: lastWritten[$0.key]) }
         forceRewrite = false
-        return ControlOutput(commands: commands, smoothedTemperature: smoothed, safetyActive: safetyActive, error: error)
+        // Bỏ cuộc ghi được ưu tiên hơn an toàn: không ghi được thì không thể ép quạt tối đa,
+        // firmware Apple có bảo vệ nhiệt riêng. Trạng thái an toàn nội bộ vẫn cập nhật theo nhiệt độ
+        // để đúng khi hết bỏ cuộc; ở đây báo false vì ta không ép quạt tối đa.
+        return ControlOutput(commands: commands, smoothedTemperature: smoothed,
+                             safetyActive: safetyActive && !writeGaveUp, error: error)
     }
 
     /// Bên gọi báo kết quả ghi từng lệnh. Ghi lỗi thì lần sau ghi lại.
     public func commit(_ command: FanCommand, fan: Int, success: Bool) {
         if success {
             lastWritten[fan] = command
-            writeFailures = 0
+            writeFailures[fan] = 0
         } else {
             lastWritten[fan] = nil
-            writeFailures += 1
+            writeFailures[fan, default: 0] += 1
         }
     }
 
     /// Sau khi máy thức dậy SMC có thể đã reset: chu kỳ sau ghi lại toàn bộ.
     public func markNeedsRewrite() {
         forceRewrite = true
+    }
+
+    /// Bỏ cuộc khi BẤT KỲ quạt nào lỗi ghi liên tiếp đủ ngưỡng. Chỉ thoát khi người dùng đổi chế độ.
+    private func updateWriteGiveUp(preset: Preset) {
+        if writeGaveUp, preset.id != gaveUpPresetID {
+            writeGaveUp = false
+            gaveUpPresetID = nil
+            writeFailures = [:]
+        }
+        if !writeGaveUp, writeFailures.values.contains(where: { $0 >= settings.maxConsecutiveFailures }) {
+            writeGaveUp = true
+            gaveUpPresetID = preset.id
+        }
     }
 
     private func desiredCommands(preset: Preset, temp: Double) -> [Int: FanCommand] {
