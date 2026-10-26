@@ -7,6 +7,7 @@ let package = Package(
     targets: [
         .target(name: "Shared"),
         .target(name: "FanCore", dependencies: ["Shared"]),
+        .executableTarget(name: "fanctld", dependencies: ["FanCore", "Shared"]),
         .testTarget(name: "SharedTests", dependencies: ["Shared"]),
         .testTarget(name: "FanCoreTests", dependencies: ["FanCore", "Shared"]),
     ],
