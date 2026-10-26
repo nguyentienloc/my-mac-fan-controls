@@ -6,7 +6,9 @@ let package = Package(
     platforms: [.macOS(.v14)],
     targets: [
         .target(name: "Shared"),
+        .target(name: "FanCore", dependencies: ["Shared"]),
         .testTarget(name: "SharedTests", dependencies: ["Shared"]),
+        .testTarget(name: "FanCoreTests", dependencies: ["FanCore", "Shared"]),
     ],
     swiftLanguageModes: [.v5]
 )
