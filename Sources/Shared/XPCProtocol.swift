@@ -2,9 +2,11 @@ import Foundation
 
 public enum XPCConstants {
     public static let machServiceName = "local.fancontrol.daemon"
-    /// Yêu cầu chữ ký của client XPC: chỉ nhận kết nối từ app. App ký ad-hoc nên
-    /// điều kiện này chỉ nâng ngưỡng chứ không tuyệt đối (identifier có thể bị giả mạo).
-    public static let clientRequirement = "identifier \"local.fancontrol.app\""
+    public static let teamID = "99G56BJA4B"
+    /// Yêu cầu chữ ký của client XPC: chỉ nhận app do Apple cấp chứng chỉ (Developer ID)
+    /// đúng team và đúng identifier. Bản build ký ad-hoc sẽ bị daemon từ chối.
+    public static let clientRequirement =
+        "anchor apple generic and identifier \"local.fancontrol.app\" and certificate leaf[subject.OU] = \"\(teamID)\""
 }
 
 /// Giao tiếp app ↔ daemon. Model truyền dưới dạng JSON `Data`;
