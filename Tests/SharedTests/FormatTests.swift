@@ -20,4 +20,35 @@ struct FormatTests {
         #expect(Format.shortTemperature(58.6) == "59°")
         #expect(Format.shortTemperature(nil) == "--°")
     }
+
+    @Test func formatsDecimalWithComma() {
+        #expect(Format.decimal(11.2, digits: 1) == "11,2")
+        #expect(Format.decimal(16.0, digits: 1) == "16")
+        #expect(Format.decimal(181.6, digits: 0) == "182")
+    }
+
+    @Test func formatsMemoryInBinaryGigabytes() {
+        #expect(Format.memory(12_025_908_428) == "11,2 GB")
+        #expect(Format.memory(17_179_869_184) == "16 GB")
+    }
+
+    @Test func formatsDiskInDecimalUnits() {
+        #expect(Format.disk(182_400_000_000) == "182 GB")
+        #expect(Format.disk(494_384_795_648) == "494 GB")
+        #expect(Format.disk(1_234_000_000_000) == "1,2 TB")
+    }
+
+    @Test func formatsNetworkRate() {
+        #expect(Format.rate(nil) == "--")
+        #expect(Format.rate(.nan) == "--")
+        #expect(Format.rate(850) == "850 B/s")
+        #expect(Format.rate(85_000) == "85 KB/s")
+        #expect(Format.rate(1_234_567) == "1,2 MB/s")
+    }
+
+    @Test func formatsPercent() {
+        #expect(Format.percent(23.4) == "23%")
+        #expect(Format.percent(nil) == "--%")
+        #expect(Format.percent(.infinity) == "--%")
+    }
 }
