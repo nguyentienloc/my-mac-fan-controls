@@ -3,13 +3,15 @@ import Foundation
 
 /// Đọc số liệu thật qua Mach, sysctl và thông tin ổ đĩa. Không cần quyền root.
 public final class LiveSystemSource: SystemSource {
+    private let host = mach_host_self()
+
     public init() {}
 
     public func cpuTicks() -> CPUTicks? {
         var cpuCount: natural_t = 0
         var info: processor_info_array_t?
         var infoCount: mach_msg_type_number_t = 0
-        guard host_processor_info(mach_host_self(), PROCESSOR_CPU_LOAD_INFO,
+        guard host_processor_info(host, PROCESSOR_CPU_LOAD_INFO,
                                   &cpuCount, &info, &infoCount) == KERN_SUCCESS,
               let info else { return nil }
         defer {
@@ -17,6 +19,7 @@ public final class LiveSystemSource: SystemSource {
                           vm_size_t(Int(infoCount) * MemoryLayout<integer_t>.stride))
         }
         // Mỗi nhân có CPU_STATE_MAX giá trị theo thứ tự USER, SYSTEM, IDLE, NICE; cộng dồn mọi nhân.
+        // Bộ đếm tick theo nhân là 32-bit; khi nó tràn, mẫu đó cho nil (CPUUsage xử lý).
         var sums = [UInt64](repeating: 0, count: Int(CPU_STATE_MAX))
         for cpu in 0..<Int(cpuCount) {
             for state in 0..<Int(CPU_STATE_MAX) {
@@ -32,7 +35,7 @@ public final class LiveSystemSource: SystemSource {
         var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.stride / MemoryLayout<integer_t>.stride)
         let result = withUnsafeMutablePointer(to: &stats) {
             $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+                host_statistics64(host, HOST_VM_INFO64, $0, &count)
             }
         }
         guard result == KERN_SUCCESS else { return nil }
