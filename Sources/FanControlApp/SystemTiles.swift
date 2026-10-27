@@ -44,6 +44,7 @@ struct StatTile<Detail: View>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(8)
+        .frame(maxHeight: .infinity, alignment: .topLeading)
         .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 9))
     }
 }
@@ -63,11 +64,8 @@ struct SystemTiles: View {
             StatTile(title: "RAM", symbol: "memorychip",
                      value: system.map { Format.memory($0.memoryUsed) } ?? "--") {
                 if let system {
-                    HStack(spacing: 0) {
-                        Text("/ \(Format.memory(system.memoryTotal)) · ")
-                        Text(system.memoryPressure.label)
-                            .foregroundStyle(system.memoryPressure.color)
-                    }
+                    // Một Text duy nhất: nội suy Text đã tô màu (không dùng Text + Text vì đã deprecated)
+                    Text("/ \(Format.memory(system.memoryTotal)) · \(Text(system.memoryPressure.label).foregroundStyle(system.memoryPressure.color))")
                 } else {
                     Text("--")
                 }

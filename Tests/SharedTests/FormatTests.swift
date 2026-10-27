@@ -51,4 +51,21 @@ struct FormatTests {
         #expect(Format.percent(nil) == "--%")
         #expect(Format.percent(.infinity) == "--%")
     }
+
+    @Test func roundsAcrossUnitBoundaries() {
+        #expect(Format.rate(999) == "999 B/s")
+        #expect(Format.rate(999.6) == "1 KB/s")
+        #expect(Format.rate(999_600) == "1 MB/s")
+        #expect(Format.rate(1_000_000) == "1 MB/s")
+        #expect(Format.disk(999_600_000_000) == "1 TB")
+        #expect(Format.disk(1_000_000_000_000) == "1 TB")
+        #expect(Format.disk(0) == "0 GB")
+        #expect(Format.memory(0) == "0 GB")
+    }
+
+    @Test func decimalGroupsAndHandlesNonFinite() {
+        #expect(Format.decimal(1234.5, digits: 1) == "1.234,5")
+        #expect(Format.decimal(.nan, digits: 1) == "--")
+        #expect(Format.decimal(.infinity, digits: 1) == "--")
+    }
 }

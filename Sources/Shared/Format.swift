@@ -23,17 +23,20 @@ public enum Format {
     }
 
     /// Ổ đĩa theo hệ 1000 như Finder: 182_400_000_000 → "182 GB"; từ 1000 GB → "1,2 TB".
+    /// Chọn đơn vị theo giá trị đã làm tròn để không ra "1.000 GB".
     public static func disk(_ bytes: UInt64) -> String {
         let gigabytes = Double(bytes) / 1_000_000_000
-        if gigabytes >= 1000 { return "\(decimal(gigabytes / 1000, digits: 1)) TB" }
+        if gigabytes.rounded() >= 1000 { return "\(decimal(gigabytes / 1000, digits: 1)) TB" }
         return "\(decimal(gigabytes, digits: 0)) GB"
     }
 
     /// Tốc độ mạng theo hệ 1000: "850 B/s", "85 KB/s", "1,2 MB/s"; nil → "--".
+    /// Chọn đơn vị theo giá trị đã làm tròn để không ra "1000 KB/s".
     public static func rate(_ bytesPerSecond: Double?) -> String {
         guard let value = bytesPerSecond, value.isFinite, value >= 0 else { return "--" }
-        if value < 1000 { return "\(Int(value.rounded())) B/s" }
-        if value < 1_000_000 { return "\(Int((value / 1000).rounded())) KB/s" }
+        if value.rounded() < 1000 { return "\(Int(value.rounded())) B/s" }
+        let kilobytes = value / 1000
+        if kilobytes.rounded() < 1000 { return "\(Int(kilobytes.rounded())) KB/s" }
         return "\(decimal(value / 1_000_000, digits: 1)) MB/s"
     }
 
@@ -43,12 +46,17 @@ public enum Format {
         return "\(Int(value.rounded()))%"
     }
 
-    /// Làm tròn `digits` chữ số thập phân, dấu phẩy kiểu Việt, bỏ phần ",0".
+    /// Làm tròn `digits` chữ số thập phân, dấu phẩy kiểu Việt, nhóm hàng nghìn bằng dấu chấm,
+    /// bỏ phần ",0". Giá trị không hữu hạn → "--".
     static func decimal(_ value: Double, digits: Int) -> String {
+        guard value.isFinite else { return "--" }
         let factor = pow(10, Double(digits))
         let rounded = (value * factor).rounded() / factor
         if rounded == rounded.rounded() { return grouped(Int(rounded)) }
-        return String(format: "%.\(digits)f", rounded).replacingOccurrences(of: ".", with: ",")
+        let parts = String(format: "%.\(digits)f", abs(rounded)).split(separator: ".", maxSplits: 1)
+        let integer = grouped(Int(parts[0]) ?? 0)
+        let fraction = parts.count > 1 ? ",\(parts[1])" : ""
+        return (rounded < 0 ? "-" : "") + integer + fraction
     }
 
     static func grouped(_ number: Int) -> String {

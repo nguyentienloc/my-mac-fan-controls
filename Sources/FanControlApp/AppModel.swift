@@ -20,12 +20,20 @@ final class AppModel {
     @ObservationIgnored private let client = DaemonClient()
     @ObservationIgnored private let sampler = SystemSampler()
     @ObservationIgnored private var pollTask: Task<Void, Never>?
+    /// Vòng lấy số liệu hệ thống riêng, để thẻ không bị đứng khi helper treo.
+    @ObservationIgnored private var sampleTask: Task<Void, Never>?
 
     init() {
-        pollTask = Task { [weak self] in
+        sampleTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
                 self.system = self.sampler.sample(now: Date())
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
+        pollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
                 await self.refresh()
                 try? await Task.sleep(for: .seconds(2))
             }
