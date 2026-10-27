@@ -6,7 +6,7 @@ DMG := build/FanControl-$(VERSION).dmg
 # Hardened runtime + timestamp: bắt buộc để notarize
 CODESIGN := codesign --force --options runtime --timestamp -s "$(SIGN_ID)"
 
-.PHONY: build test app install dmg notarize clean
+.PHONY: build test app install dmg notarize icon clean
 
 build:
 	swift build -c release
@@ -21,6 +21,7 @@ app: build
 	cp .build/release/fanctld $(APP)/Contents/Resources/fanctld
 	cp Resources/Info.plist $(APP)/Contents/Info.plist
 	cp Resources/local.fancontrol.daemon.plist $(APP)/Contents/Resources/
+	cp Resources/AppIcon.icns $(APP)/Contents/Resources/
 	$(CODESIGN) $(APP)/Contents/Resources/fanctld
 	$(CODESIGN) $(APP)
 	codesign --verify --strict --deep $(APP)
@@ -42,6 +43,11 @@ notarize: dmg
 	xcrun notarytool submit $(DMG) --keychain-profile "$(NOTARY_PROFILE)" --wait
 	xcrun stapler staple $(DMG)
 	spctl --assess --type open --context context:primary-signature -v $(DMG)
+
+icon:
+	rm -rf build/AppIcon.iconset
+	swift scripts/make-icon.swift build/AppIcon.iconset
+	iconutil -c icns build/AppIcon.iconset -o Resources/AppIcon.icns
 
 clean:
 	rm -rf .build build
