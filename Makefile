@@ -1,6 +1,7 @@
 APP := build/FanControl.app
 SIGN_ID ?= Developer ID Application: 5WEB VIET NAM TECHNOLOGY JOINT STOCK COMPANY (99G56BJA4B)
 NOTARY_PROFILE ?= fancontrol-notary
+NOTARY_KEYCHAIN ?= $(HOME)/Library/Keychains/login.keychain-db
 VERSION := $(shell /usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Resources/Info.plist)
 DMG := build/FanControl-$(VERSION).dmg
 # Hardened runtime + timestamp: bắt buộc để notarize
@@ -38,9 +39,9 @@ dmg: app
 	hdiutil create -volname "Fan Control" -srcfolder build/dmg -ov -format UDZO $(DMG)
 	codesign --force --timestamp -s "$(SIGN_ID)" $(DMG)
 
-# Cần keychain profile: xcrun notarytool store-credentials $(NOTARY_PROFILE) --apple-id <email> --team-id 99G56BJA4B
+# Cần keychain profile: xcrun notarytool store-credentials $(NOTARY_PROFILE) --apple-id <email> --team-id 99G56BJA4B --keychain $(NOTARY_KEYCHAIN)
 notarize: dmg
-	xcrun notarytool submit $(DMG) --keychain-profile "$(NOTARY_PROFILE)" --wait
+	xcrun notarytool submit $(DMG) --keychain-profile "$(NOTARY_PROFILE)" --keychain "$(NOTARY_KEYCHAIN)" --wait
 	xcrun stapler staple $(DMG)
 	spctl --assess --type open --context context:primary-signature -v $(DMG)
 

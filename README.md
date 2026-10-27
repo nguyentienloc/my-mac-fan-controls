@@ -45,7 +45,7 @@ make notarize    # dmg + notarize + staple (cần keychain profile, xem dưới)
 Tạo keychain profile cho notarize một lần:
 
 ```bash
-xcrun notarytool store-credentials fancontrol-notary --apple-id <email> --team-id 99G56BJA4B
+xcrun notarytool store-credentials fancontrol-notary --apple-id <email> --team-id 99G56BJA4B --keychain ~/Library/Keychains/login.keychain-db
 ```
 
 Helper chỉ nhận kết nối từ app ký bằng Developer ID của team `99G56BJA4B`. Bản ký ad-hoc sẽ không điều khiển được quạt.
