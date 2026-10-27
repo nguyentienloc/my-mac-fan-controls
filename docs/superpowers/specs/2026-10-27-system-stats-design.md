@@ -52,7 +52,7 @@ Dấu phẩy thập phân kiểu Việt, không phụ thuộc locale máy:
 ### AppModel
 
 - Thêm `private(set) var system: SystemSnapshot?` và một `SystemSampler` (`@ObservationIgnored`).
-- Trong vòng poll 2 giây hiện có: lấy mẫu hệ thống (`system = sampler.sample(now: Date())`) rồi mới `refresh()` daemon. Lấy mẫu chạy cả khi chưa cài helper.
+- Lấy mẫu chạy trong task riêng mỗi 2 giây, độc lập với vòng poll daemon, để các ô số liệu không bị đứng khi helper treo. Dung lượng ổ đĩa chỉ đọc lại mỗi 30 giây. Lấy mẫu chạy cả khi chưa cài helper.
 
 ## Giao diện popover (bố cục A)
 
@@ -86,7 +86,7 @@ Dưới lưới: các dòng `Quạt N` + `Format.rpm`. Cảnh báo quá nhiệt 
 - Script `scripts/make-icon.swift` (chạy bằng `swift scripts/make-icon.swift <thư mục ra>`) vẽ bằng AppKit/CoreGraphics ảnh 1024×1024:
   - nền vuông bo góc kiểu macOS (bo ~22,5%, có lề trong suốt ~10% như icon chuẩn Big Sur+),
   - chuyển màu chéo xanh dương `#2F80ED` → xanh ngọc `#2BC0B4`,
-  - hình quạt SF Symbol `fan.fill` màu trắng ở giữa (~55% cạnh), đổ bóng nhẹ.
+  - hình quạt SF Symbol `fan.fill` màu trắng ở giữa (~40% cạnh), đổ bóng nhẹ.
 - Script xuất đủ các cỡ của `AppIcon.iconset` (16…512 @1x/@2x); `iconutil -c icns` tạo `Resources/AppIcon.icns`, file này được commit.
 - `Info.plist` thêm `CFBundleIconFile = AppIcon`; `Makefile` copy `AppIcon.icns` vào `Contents/Resources`.
 - Sau khi vẽ, cho người dùng xem bản PNG để duyệt hoặc chỉnh màu/hình.

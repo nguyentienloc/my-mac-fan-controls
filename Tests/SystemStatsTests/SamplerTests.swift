@@ -62,4 +62,16 @@ struct SamplerTests {
         #expect(snapshot.diskTotal == nil)
         #expect(snapshot.memoryPressure == .critical)
     }
+
+    @Test func diskIsCachedBetweenRefreshes() {
+        let source = FakeSource()
+        source.disk = (free: 100, total: 500)
+        let sampler = SystemSampler(source: source, diskInterval: 30)
+        _ = sampler.sample(now: start)
+        source.disk = (free: 50, total: 500)
+        // Trong 30 giây: dùng giá trị đã lưu.
+        #expect(sampler.sample(now: start.addingTimeInterval(10)).diskFree == 100)
+        // Qua 30 giây: đọc lại.
+        #expect(sampler.sample(now: start.addingTimeInterval(31)).diskFree == 50)
+    }
 }

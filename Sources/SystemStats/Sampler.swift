@@ -17,8 +17,12 @@ public final class SystemSampler {
     private var lastTicks: CPUTicks?
     private var lastNetwork: (counters: [String: InterfaceCounters], time: Date)?
 
-    public init(source: SystemSource) {
+    private var lastDisk: (value: (free: UInt64, total: UInt64)?, time: Date)?
+    private let diskInterval: TimeInterval
+
+    public init(source: SystemSource, diskInterval: TimeInterval = 30) {
         self.source = source
+        self.diskInterval = diskInterval
     }
 
     /// Lấy mẫu từ hệ thống thật.
@@ -41,7 +45,15 @@ public final class SystemSampler {
         }
         lastNetwork = (counters, now)
 
-        let disk = source.diskCapacity()
+        // Dung lượng ổ đĩa đổi chậm và đọc tốn vài chục ms, nên chỉ đọc lại mỗi 30 giây.
+        // Đồng hồ chạy lùi (now < time đã lưu) cũng buộc đọc lại.
+        let disk: (free: UInt64, total: UInt64)?
+        if let cached = lastDisk, now >= cached.time, now.timeIntervalSince(cached.time) < diskInterval {
+            disk = cached.value
+        } else {
+            disk = source.diskCapacity()
+            lastDisk = (disk, now)
+        }
         return SystemSnapshot(
             cpuPercent: cpuPercent,
             memoryUsed: source.memoryCounts()?.usedBytes(pageSize: source.pageSize()) ?? 0,

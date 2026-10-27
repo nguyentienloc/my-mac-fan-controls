@@ -36,10 +36,10 @@ struct LiveSourceTests {
     /// Bộ đếm 64-bit: en0 đã vượt 4 GB (giới hạn của số 32-bit), hoặc có giá trị không chia hết cho 1 KB.
     @Test func networkCountersMatch64Bit() {
         let counters = source.interfaceCounters()
-        // Máy không có Wi-Fi/Ethernet đang hoạt động (ví dụ đã tắt Wi-Fi) thì không có gì để kiểm tra.
-        guard !counters.isEmpty else { return }
-        let values = counters.values.flatMap { [$0.received, $0.sent] }
-        #expect(values.contains { $0 > UInt64(UInt32.max) } || values.contains { $0 != 0 && $0 % 1024 != 0 })
+        let values = counters.values.flatMap { [$0.received, $0.sent] }.filter { $0 != 0 }
+        // Không có card nào thực sự có lưu lượng (en1–en6 Thunderbolt luôn UP nhưng bộ đếm bằng 0) thì không có gì để kiểm tra.
+        guard !values.isEmpty else { return }
+        #expect(values.contains { $0 > UInt64(UInt32.max) } || values.contains { $0 % 1024 != 0 })
     }
 
     @Test func liveSamplerProducesRatesOnSecondSample() async throws {
