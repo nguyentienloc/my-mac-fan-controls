@@ -19,10 +19,10 @@ Thêm library target **`SystemStats`** (không phụ thuộc target khác). `Fan
 
 | Thành phần | Nguồn | Cách tính |
 |---|---|---|
-| `CPUUsage` | `host_statistics(HOST_CPU_LOAD_INFO)` | Đọc tick `user`, `system`, `idle`, `nice`. Hàm thuần `usage(from:to:) -> Double?`: % = (Δuser + Δsystem + Δnice) ÷ Δtổng × 100; trả `nil` khi Δtổng = 0 |
+| `CPUUsage` | `host_processor_info(PROCESSOR_CPU_LOAD_INFO)`, cộng tick mọi nhân (bộ đếm gộp `HOST_CPU_LOAD_INFO` cập nhật chậm ~0,8 s nên lấy mẫu ngắn bị trống) | Đọc tick `user`, `system`, `idle`, `nice`. Hàm thuần `usage(from:to:) -> Double?`: % = (Δuser + Δsystem + Δnice) ÷ Δtổng × 100; trả `nil` khi Δtổng = 0 |
 | `MemoryStats` | `host_statistics64(HOST_VM_INFO64)`, `vm_kernel_page_size`, `ProcessInfo.physicalMemory`, sysctl `kern.memorystatus_vm_pressure_level` | Đã dùng = (internal − purgeable + wired + compressor) × page size, khớp "Memory Used" của Activity Monitor. Áp lực: 1 → `.normal` ("bình thường"), 2 → `.warning` ("cao"), 4 → `.critical` ("nguy hiểm"), giá trị khác → `.normal` |
 | `DiskStats` | `URL(fileURLWithPath: "/")` với `volumeAvailableCapacityForImportantUsageKey`, `volumeTotalCapacityKey` | Trống / tổng của ổ khởi động, giống số Finder hiện |
-| `NetworkStats` | sysctl `NET_RT_IFLIST2` → `if_msghdr2` (bộ đếm `ifi_ibytes`/`ifi_obytes` 64-bit) | Đọc bộ đếm theo **từng card mạng vật lý** (tên bắt đầu `en`: Wi-Fi/Ethernet) đang UP, bỏ loopback. Không đếm `utun*` (VPN), `bridge*`, `awdl*`… vì lưu lượng của chúng đi chồng qua `en*` nên sẽ bị đếm trùng. Hàm thuần `rates(from:to:elapsed:)` cộng Δbyte của các card có ở cả 2 lần đo; card mới xuất hiện hoặc có bộ đếm giảm (reset) thì bỏ qua card đó. Trả `nil` khi `elapsed <= 0` |
+| `NetworkStats` | sysctl `IFMIB_IFDATA` / `IFDATA_GENERAL` cho từng card từ `if_nameindex()` (bộ đếm 64-bit chính xác; `NET_RT_IFLIST2` bị cắt còn 32-bit và làm tròn 1 KB với tiến trình không phải root) | Đọc bộ đếm theo **từng card mạng vật lý** (tên bắt đầu `en`: Wi-Fi/Ethernet) đang UP, bỏ loopback. Không đếm `utun*` (VPN), `bridge*`, `awdl*`… vì lưu lượng của chúng đi chồng qua `en*` nên sẽ bị đếm trùng. Hàm thuần `rates(from:to:elapsed:)` cộng Δbyte của các card có ở cả 2 lần đo; card mới xuất hiện hoặc có bộ đếm giảm (reset) thì bỏ qua card đó. Trả `nil` khi `elapsed <= 0` |
 | `SystemSampler` | gom các thành phần trên qua protocol `SystemSource` (bản thật đọc hệ thống, bản giả cho test) | `sample(now: Date) -> SystemSnapshot`. Giữ mẫu CPU và mạng lần trước. Lần đầu: `cpuPercent` và tốc độ mạng là `nil` |
 
 ```swift

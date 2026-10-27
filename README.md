@@ -2,6 +2,8 @@
 
 App menu bar tự chỉnh tốc độ quạt MacBook (Apple Silicon M1/M2) theo nhiệt độ CPU/GPU.
 
+Popover còn hiện nhanh CPU %, RAM (kèm áp lực bộ nhớ), dung lượng ổ đĩa trống và tốc độ mạng (Wi-Fi/Ethernet).
+
 ## Cài đặt (cho người dùng)
 
 1. Mở `FanControl-<phiên bản>.dmg`, kéo **FanControl** vào thư mục **Applications**.
@@ -35,6 +37,7 @@ Yêu cầu: macOS 14+, Xcode có Swift 6, chứng chỉ "Developer ID Applicatio
 ```bash
 make test        # unit test
 make install     # build, ký, copy vào /Applications
+make icon        # vẽ lại Resources/AppIcon.icns từ scripts/make-icon.swift
 make dmg         # build/FanControl-<phiên bản>.dmg (đã ký, chưa notarize)
 make notarize    # dmg + notarize + staple (cần keychain profile, xem dưới)
 ```
