@@ -21,6 +21,11 @@ public final class SystemSampler {
         self.source = source
     }
 
+    /// Lấy mẫu từ hệ thống thật.
+    public convenience init() {
+        self.init(source: LiveSystemSource())
+    }
+
     public func sample(now: Date) -> SystemSnapshot {
         let ticks = source.cpuTicks()
         var cpuPercent: Double?
