@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import ServiceManagement
 import Shared
+import SystemStats
 
 @MainActor
 @Observable
@@ -13,14 +14,18 @@ final class AppModel {
     private(set) var connectionError: String?
     private(set) var launchAtLogin = SMAppService.mainApp.status == .enabled
     var actionError: String?
+    /// Số liệu hệ thống (CPU, RAM, ổ đĩa, mạng), lấy trong app, không cần helper.
+    private(set) var system: SystemSnapshot?
 
     @ObservationIgnored private let client = DaemonClient()
+    @ObservationIgnored private let sampler = SystemSampler()
     @ObservationIgnored private var pollTask: Task<Void, Never>?
 
     init() {
         pollTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
+                self.system = self.sampler.sample(now: Date())
                 await self.refresh()
                 try? await Task.sleep(for: .seconds(2))
             }

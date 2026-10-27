@@ -7,7 +7,10 @@ struct PopoverView: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionTitle("Hệ thống")
+            SystemTiles(system: model.system, temperature: model.status?.temperature)
+
             if !model.helperInstalled {
                 HelperMissingView()
             } else if let message = model.connectionError {
@@ -15,9 +18,10 @@ struct PopoverView: View {
                     .foregroundStyle(.red)
                 Button("Cài lại helper") { Task { await model.installHelper() } }
             } else if let status = model.status {
-                StatusSection(status: status)
+                FanSection(status: status)
                 Divider()
-                ModeList(status: status)
+                SectionTitle("Chế độ quạt")
+                ModeGrid(status: status)
             } else {
                 ProgressView("Đang kết nối…")
                     .frame(maxWidth: .infinity)
@@ -39,8 +43,8 @@ struct PopoverView: View {
                 Button("Thoát") { NSApp.terminate(nil) }
             }
         }
-        .padding(14)
-        .frame(width: 290)
+        .padding(12)
+        .frame(width: 300)
     }
 }
 
@@ -60,18 +64,12 @@ private struct HelperMissingView: View {
     }
 }
 
-private struct StatusSection: View {
+/// Cảnh báo từ daemon và tốc độ từng quạt.
+private struct FanSection: View {
     let status: Status
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("Nhiệt độ CPU/GPU")
-                Spacer()
-                Text(Format.temperature(status.temperature))
-                    .monospacedDigit()
-                    .bold()
-            }
             if status.safetyActive {
                 Label("Quá nóng – đang chạy quạt tối đa", systemImage: "flame.fill")
                     .font(.caption)
@@ -97,25 +95,32 @@ private struct StatusSection: View {
     }
 }
 
-private struct ModeList: View {
+/// Ô chọn nhanh chế độ, 2 cột; ô đang dùng tô màu nhấn.
+private struct ModeGrid: View {
     @Environment(AppModel.self) private var model
     let status: Status
 
+    private let columns = [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)]
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        LazyVGrid(columns: columns, spacing: 6) {
             ForEach(status.presets) { preset in
+                let active = preset.id == status.activePresetID
                 Button {
                     Task { await model.setMode(preset.id) }
                 } label: {
-                    HStack {
-                        Image(systemName: preset.id == status.activePresetID ? "largecircle.fill.circle" : "circle")
-                        Text(preset.name)
-                        Spacer()
-                    }
-                    .contentShape(Rectangle())
+                    Text(preset.name)
+                        .font(.callout.weight(active ? .semibold : .regular))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .foregroundStyle(active ? Color.white : Color.primary)
+                        .background(active ? Color.accentColor : Color.primary.opacity(0.06),
+                                    in: RoundedRectangle(cornerRadius: 7))
+                        .contentShape(RoundedRectangle(cornerRadius: 7))
                 }
                 .buttonStyle(.plain)
-                .padding(.vertical, 3)
             }
         }
     }
