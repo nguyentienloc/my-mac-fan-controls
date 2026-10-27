@@ -7,10 +7,12 @@ let package = Package(
     targets: [
         .target(name: "Shared"),
         .target(name: "FanCore", dependencies: ["Shared"]),
+        .target(name: "SystemStats"),
         .executableTarget(name: "fanctld", dependencies: ["FanCore", "Shared"]),
-        .executableTarget(name: "FanControlApp", dependencies: ["Shared"]),
+        .executableTarget(name: "FanControlApp", dependencies: ["Shared", "SystemStats"]),
         .testTarget(name: "SharedTests", dependencies: ["Shared"]),
         .testTarget(name: "FanCoreTests", dependencies: ["FanCore", "Shared"]),
+        .testTarget(name: "SystemStatsTests", dependencies: ["SystemStats"]),
     ],
     swiftLanguageModes: [.v5]
 )
