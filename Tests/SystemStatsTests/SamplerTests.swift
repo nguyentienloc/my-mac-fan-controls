@@ -9,6 +9,7 @@ final class FakeSource: SystemSource {
     var pressureLevel: Int32 = 1
     var disk: (free: UInt64, total: UInt64)? = (free: 100, total: 500)
     var counters: [String: InterfaceCounters] = ["en0": InterfaceCounters(received: 0, sent: 0)]
+    var gpu: [String: Any]? = ["Device Utilization %": 30]
 
     func cpuTicks() -> CPUTicks? { ticks }
     func memoryCounts() -> MemoryCounts? { counts }
@@ -17,6 +18,7 @@ final class FakeSource: SystemSource {
     func memoryPressureLevel() -> Int32 { pressureLevel }
     func diskCapacity() -> (free: UInt64, total: UInt64)? { disk }
     func interfaceCounters() -> [String: InterfaceCounters] { counters }
+    func gpuStatistics() -> [String: Any]? { gpu }
 }
 
 struct SamplerTests {
@@ -73,5 +75,16 @@ struct SamplerTests {
         #expect(sampler.sample(now: start.addingTimeInterval(10)).diskFree == 100)
         // Qua 30 giây: đọc lại.
         #expect(sampler.sample(now: start.addingTimeInterval(31)).diskFree == 50)
+    }
+
+    @Test func gpuPercentAvailableOnFirstSample() {
+        let sampler = SystemSampler(source: FakeSource())
+        #expect(sampler.sample(now: start).gpuPercent == 30)
+    }
+
+    @Test func gpuPercentIsNilWhenSourceFails() {
+        let source = FakeSource()
+        source.gpu = nil
+        #expect(SystemSampler(source: source).sample(now: start).gpuPercent == nil)
     }
 }

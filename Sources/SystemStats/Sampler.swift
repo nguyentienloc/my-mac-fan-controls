@@ -9,6 +9,7 @@ public protocol SystemSource {
     func memoryPressureLevel() -> Int32
     func diskCapacity() -> (free: UInt64, total: UInt64)?
     func interfaceCounters() -> [String: InterfaceCounters]
+    func gpuStatistics() -> [String: Any]?
 }
 
 /// Lấy mẫu định kỳ; giữ lần đọc CPU và mạng trước đó để tính % và tốc độ.
@@ -56,6 +57,7 @@ public final class SystemSampler {
         }
         return SystemSnapshot(
             cpuPercent: cpuPercent,
+            gpuPercent: source.gpuStatistics().flatMap(GPUStats.utilization),
             memoryUsed: source.memoryCounts()?.usedBytes(pageSize: source.pageSize()) ?? 0,
             memoryTotal: source.physicalMemory(),
             memoryPressure: MemoryPressure(sysctlLevel: source.memoryPressureLevel()),

@@ -65,4 +65,18 @@ struct CalculationTests {
         #expect(!NetworkStats.isCounted(name: "awdl0"))
         #expect(!NetworkStats.isCounted(name: "lo0"))
     }
+
+    @Test func gpuUtilizationReadsDeviceUtilization() {
+        #expect(GPUStats.utilization(from: ["Device Utilization %": 30]) == 30)
+    }
+
+    @Test func gpuUtilizationIsNilWhenMissingOrWrongType() {
+        #expect(GPUStats.utilization(from: [:]) == nil)
+        #expect(GPUStats.utilization(from: ["Device Utilization %": "30"]) == nil)
+    }
+
+    @Test func gpuUtilizationIsClamped() {
+        #expect(GPUStats.utilization(from: ["Device Utilization %": 150]) == 100)
+        #expect(GPUStats.utilization(from: ["Device Utilization %": -5]) == 0)
+    }
 }

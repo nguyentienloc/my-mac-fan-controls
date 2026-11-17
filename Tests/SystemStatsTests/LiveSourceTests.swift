@@ -55,4 +55,10 @@ struct LiveSourceTests {
             #expect((snapshot.uploadBytesPerSecond ?? -1) >= 0)
         }
     }
+
+    @Test func readsGPUUtilization() throws {
+        let statistics = try #require(source.gpuStatistics())
+        let percent = try #require(GPUStats.utilization(from: statistics))
+        #expect((0...100).contains(percent))
+    }
 }

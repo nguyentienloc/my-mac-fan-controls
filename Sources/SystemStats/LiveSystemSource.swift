@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import IOKit
 
 /// Đọc số liệu thật qua Mach, sysctl và thông tin ổ đĩa. Không cần quyền root.
 public final class LiveSystemSource: SystemSource {
@@ -90,6 +91,24 @@ public final class LiveSystemSource: SystemSource {
                                                sent: data.ifmd_data.ifi_obytes)
         }
         return counters
+    }
+
+    /// Từ điển `PerformanceStatistics` của IOAccelerator đầu tiên có thuộc tính này
+    /// (Apple Silicon có một GPU tích hợp). Không cần quyền root.
+    public func gpuStatistics() -> [String: Any]? {
+        var iterator: io_iterator_t = 0
+        guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOAccelerator"), &iterator)
+                == KERN_SUCCESS else { return nil }
+        defer { IOObjectRelease(iterator) }
+        while case let service = IOIteratorNext(iterator), service != 0 {
+            defer { IOObjectRelease(service) }
+            if let statistics = IORegistryEntryCreateCFProperty(
+                service, "PerformanceStatistics" as CFString, kCFAllocatorDefault, 0)?
+                .takeRetainedValue() as? [String: Any] {
+                return statistics
+            }
+        }
+        return nil
     }
 
     /// Đọc `ifmibdata` (cờ và bộ đếm 64-bit) của một card theo chỉ số; `nil` nếu sysctl lỗi.

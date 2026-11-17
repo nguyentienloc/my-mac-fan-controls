@@ -18,6 +18,7 @@ public enum MemoryPressure: Equatable, Sendable {
 /// Một lần lấy mẫu số liệu hệ thống. `nil` nghĩa là chưa có (lần đo đầu) hoặc đọc lỗi.
 public struct SystemSnapshot: Equatable, Sendable {
     public var cpuPercent: Double?
+    public var gpuPercent: Double?          // 0...100
     public var memoryUsed: UInt64
     public var memoryTotal: UInt64
     public var memoryPressure: MemoryPressure
@@ -26,9 +27,10 @@ public struct SystemSnapshot: Equatable, Sendable {
     public var downloadBytesPerSecond: Double?
     public var uploadBytesPerSecond: Double?
 
-    public init(cpuPercent: Double?, memoryUsed: UInt64, memoryTotal: UInt64, memoryPressure: MemoryPressure,
+    public init(cpuPercent: Double?, gpuPercent: Double?, memoryUsed: UInt64, memoryTotal: UInt64, memoryPressure: MemoryPressure,
                 diskFree: UInt64?, diskTotal: UInt64?, downloadBytesPerSecond: Double?, uploadBytesPerSecond: Double?) {
         self.cpuPercent = cpuPercent
+        self.gpuPercent = gpuPercent
         self.memoryUsed = memoryUsed
         self.memoryTotal = memoryTotal
         self.memoryPressure = memoryPressure
