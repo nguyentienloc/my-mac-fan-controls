@@ -2,7 +2,7 @@
 
 App menu bar tự chỉnh tốc độ quạt MacBook (Apple Silicon M1/M2) theo nhiệt độ CPU/GPU.
 
-Popover còn hiện nhanh CPU %, RAM (kèm áp lực bộ nhớ), dung lượng ổ đĩa trống và tốc độ mạng (Wi-Fi/Ethernet).
+Popover còn hiện nhanh CPU % và GPU %, RAM (kèm áp lực bộ nhớ), dung lượng ổ đĩa trống và tốc độ mạng (Wi-Fi/Ethernet).
 
 ## Cài đặt (cho người dùng)
 
