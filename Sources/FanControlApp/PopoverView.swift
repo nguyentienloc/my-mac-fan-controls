@@ -20,8 +20,7 @@ struct PopoverView: View {
             } else if let status = model.status {
                 FanSection(status: status)
                 Divider()
-                SectionTitle("Chế độ quạt")
-                ModeGrid(status: status)
+                ModePicker(status: status)
             } else {
                 ProgressView("Đang kết nối…")
                     .frame(maxWidth: .infinity)
@@ -95,34 +94,26 @@ private struct FanSection: View {
     }
 }
 
-/// Ô chọn nhanh chế độ, 2 cột; ô đang dùng tô màu nhấn.
-private struct ModeGrid: View {
+/// Chọn nhanh chế độ quạt bằng menu xổ xuống: chế độ có sẵn, rồi các preset tùy chỉnh.
+private struct ModePicker: View {
     @Environment(AppModel.self) private var model
     let status: Status
 
-    private let columns = [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)]
-
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 6) {
-            ForEach(status.presets) { preset in
-                let active = preset.id == status.activePresetID
-                Button {
-                    Task { await model.setMode(preset.id) }
-                } label: {
-                    Text(preset.name)
-                        .font(.callout.weight(active ? .semibold : .regular))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
-                        .foregroundStyle(active ? Color.white : Color.primary)
-                        .background(active ? Color.accentColor : Color.primary.opacity(0.06),
-                                    in: RoundedRectangle(cornerRadius: 7))
-                        .contentShape(RoundedRectangle(cornerRadius: 7))
+        Picker("Chế độ quạt", selection: Binding(
+            get: { status.activePresetID },
+            set: { id in Task { await model.setMode(id) } })) {
+            ForEach(status.presets.filter(\.isBuiltIn)) { preset in
+                Text(preset.name).tag(preset.id)
+            }
+            let custom = status.presets.filter { !$0.isBuiltIn }
+            if !custom.isEmpty {
+                Divider()
+                ForEach(custom) { preset in
+                    Text(preset.name).tag(preset.id)
                 }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(active ? .isSelected : [])
             }
         }
+        .pickerStyle(.menu)
     }
 }

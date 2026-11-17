@@ -59,7 +59,7 @@ struct SystemTiles: View {
     var body: some View {
         LazyVGrid(columns: columns, spacing: 6) {
             StatTile(title: "CPU/GPU", symbol: "thermometer.medium", value: Format.temperature(temperature)) {
-                Text("CPU \(Format.percent(system?.cpuPercent))")
+                Text("CPU \(Format.percent(system?.cpuPercent)) · GPU \(Format.percent(system?.gpuPercent))")
             }
             StatTile(title: "RAM", symbol: "memorychip",
                      value: system.map { Format.memory($0.memoryUsed) } ?? "--") {
