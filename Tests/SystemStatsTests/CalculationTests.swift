@@ -73,6 +73,7 @@ struct CalculationTests {
     @Test func gpuUtilizationIsNilWhenMissingOrWrongType() {
         #expect(GPUStats.utilization(from: [:]) == nil)
         #expect(GPUStats.utilization(from: ["Device Utilization %": "30"]) == nil)
+        #expect(GPUStats.utilization(from: ["Device Utilization %": Double.nan]) == nil)
     }
 
     @Test func gpuUtilizationIsClamped() {
